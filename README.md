@@ -1,5 +1,5 @@
 # arriendapp
-gmail: arriendapp@gmail.com
+gmail: arriendaapp@gmail.com
 contra: arrienda123
 
 usuarios:
