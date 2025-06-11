@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "198364607453",
+    "project_id": "arriendapp-22150",
+    "storage_bucket": "arriendapp-22150.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198364607453:android:6fe3fa0dc7806155987c34",
+        "android_client_info": {
+          "package_name": "com.example.arriendapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARgdCCzJMqzcGHguI5CJZhrko3-ZfbmoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
