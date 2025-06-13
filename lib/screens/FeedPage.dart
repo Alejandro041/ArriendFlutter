@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'PropertyDetailPage.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -18,7 +19,6 @@ class _FeedPageState extends State<FeedPage> {
         .collection("usuarios")
         .doc(currentUser!.uid)
         .get();
-
     return doc.exists && doc.data()?['tipo'] == 'arrendador';
   }
 
@@ -38,11 +38,20 @@ class _FeedPageState extends State<FeedPage> {
         .snapshots();
   }
 
+  Future<String> obtenerNombreUsuario(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
+    return doc.exists ? (doc.data()?['nombre'] ?? 'Desconocido') : 'Desconocido';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final azul = Colors.blue.shade600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("ArriendApp"),
+        backgroundColor: azul,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle),
@@ -51,7 +60,7 @@ class _FeedPageState extends State<FeedPage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -60,15 +69,15 @@ class _FeedPageState extends State<FeedPage> {
               icon: const Icon(Icons.add_home),
               label: const Text("Crear propiedad"),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue.shade600,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: azul,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(40),
                 ),
                 textStyle: const TextStyle(fontSize: 16),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: obtenerPropiedades(),
@@ -86,27 +95,97 @@ class _FeedPageState extends State<FeedPage> {
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: ListTile(
-                          title: Text(data['titulo'] ?? 'Sin título'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(data['descripcion'] ?? 'Sin descripción'),
-                              const SizedBox(height: 4),
-                              Text("Precio: \$${data['precio']}"),
-                              Text("Habitaciones: ${data['habitacionesDisponibles']}"),
-                              Text("Estacionamiento: ${data['estacionamiento'] == true ? 'Sí' : 'No'}"),
-                            ],
-                          ),
-                        ),
+
+                      final imagenUrl = data['imagenUrl'] as String?;
+                      final titulo = data['titulo'] ?? 'Sin título';
+                      final descripcion = data['descripcion'] ?? 'Sin descripción';
+                      final precio = data['precio'] ?? 0;
+                      final estacionamiento = data['estacionamiento'] == true ? 'Sí' : 'No';
+                      final total = data['totalHabitaciones'] ?? 0;
+                      final disponibles = data['habitacionesDisponibles'] ?? 0;
+                      final creadorUid = data['creadoPor'];
+
+                      return FutureBuilder<String>(
+                        future: obtenerNombreUsuario(creadorUid),
+                        builder: (context, snapshotNombre) {
+                          final nombreArrendador = snapshotNombre.data ?? 'Arrendador';
+
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PropertyDetailPage(data: data),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 4,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (imagenUrl != null)
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          imagenUrl,
+                                          height: 180,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      titulo,
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(descripcion, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.directions_car, color: azul, size: 20),
+                                        const SizedBox(width: 4),
+                                        Text("Estacionamiento: $estacionamiento"),
+                                        const SizedBox(width: 16),
+                                        Icon(Icons.bed, color: azul, size: 20),
+                                        const SizedBox(width: 4),
+                                        Text("Habitaciones: $disponibles/$total"),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.person, size: 20),
+                                            const SizedBox(width: 4),
+                                            Text(nombreArrendador),
+                                          ],
+                                        ),
+                                        Text(
+                                          "\$$precio CLP",
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ),
