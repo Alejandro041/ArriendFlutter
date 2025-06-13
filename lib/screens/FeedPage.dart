@@ -50,12 +50,14 @@ class _FeedPageState extends State<FeedPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("ArriendApp"),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
         backgroundColor: azul,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle),
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            onPressed: () => Navigator.pushNamed(context, '/MyProfile'),
           )
         ],
       ),
@@ -188,6 +190,31 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        selectedItemColor: azul,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Ya estás en Home
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/MyProfile');
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
       ),
     );
   }

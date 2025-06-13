@@ -44,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
                     fontSize: 28,
                     color: Colors.blue.shade600,
                     fontWeight: FontWeight.bold,
+                    
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -117,6 +118,16 @@ class _LoginPageState extends State<LoginPage> {
                   },
                   child:Text(
                     "¿No tienes cuenta? Regístrate",
+                    style: TextStyle(color:Colors.blue.shade600),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, "/PasswordForget");
+                  },
+                  child:Text(
+                    "¿Olvidaste tu contraseña?",
                     style: TextStyle(color:Colors.blue.shade600),
                   ),
                 ),

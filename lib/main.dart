@@ -2,6 +2,8 @@ import 'package:arriendapp/screens/CreatePropertyPage.dart';
 import 'package:arriendapp/screens/FeedPage.dart';
 import 'package:arriendapp/screens/LoginPage.dart';
 import 'package:arriendapp/screens/MyPropertiesPage.dart';
+import 'package:arriendapp/screens/PasswordForget.dart';
+import 'package:arriendapp/screens/ProfilePage.dart';
 import 'package:arriendapp/screens/PropertyDetailPage.dart';
 import 'package:arriendapp/screens/RegisterPage.dart';
 import 'package:arriendapp/screens/SolicityArrPage.dart';
@@ -38,6 +40,8 @@ class MyApp extends StatelessWidget {
         "/CreateProperty": (context) => const Createpropertypage(),
         "/SolicityArr": (context) => const Solicityarrpage(),
         "/myProperties": (context) => const Mypropertiespage(),
+        "/MyProfile": (context) => const ProfilePage(),
+        "/PasswordForget": (context) => const PasswordForgetPage()
       },
     );
   }
