@@ -56,6 +56,14 @@ class _CreatepropertypageState extends State<Createpropertypage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // Obtener nombre del usuario desde Firestore
+    final usuarioDoc =
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(user.uid)
+            .get();
+    final nombreUsuario = usuarioDoc.data()?['nombre'] ?? 'Sin nombre';
+
     String? imageUrl;
     if (_imagenSeleccionada != null) {
       final storageRef = FirebaseStorage.instance.ref().child(
@@ -82,7 +90,8 @@ class _CreatepropertypageState extends State<Createpropertypage> {
       'servicios': _servicios,
       'imagenUrl': imageUrl,
       'disponible': true,
-      'creadoPor': user.uid,
+      'creadoPorId': user.uid,
+      'creadoPorNombre': nombreUsuario,
       'fechaPublicacion': FieldValue.serverTimestamp(),
     });
 

@@ -1,22 +1,59 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class PropertyDetailPage extends StatelessWidget {
+class DetailArrendadorPropertyPage extends StatelessWidget {
   final Map<String, dynamic> data;
+  final String idDocumento;
 
-  const PropertyDetailPage({super.key, required this.data});
+  const DetailArrendadorPropertyPage({
+    super.key,
+    required this.data,
+    required this.idDocumento,
+  });
+
+  void eliminarPropiedad(BuildContext context) async {
+    final confirmacion = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirmar eliminación"),
+        content: const Text("¿Deseas eliminar esta propiedad? Esta acción no se puede deshacer."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Eliminar", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmacion == true) {
+      await FirebaseFirestore.instance
+          .collection('propiedades')
+          .doc(idDocumento)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Propiedad eliminada")),
+      );
+
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final azul = Colors.blue.shade600;
 
-    // Datos principales
     final titulo = data['titulo'] ?? 'Sin título';
     final descripcion = data['descripcion'] ?? 'Sin descripción';
     final direccion = data['direccion'] ?? 'Sin dirección';
     final precio = data['precio']?.toString() ?? '0';
     final habitaciones = "${data['habitacionesDisponibles']}/${data['totalHabitaciones'] ?? '?'}";
     final estacionamiento = data['estacionamiento'] == true ? 'Sí' : 'No';
-    final arrendador = data['creadoPorNombre'] ?? 'No registrado';
     final universidad = data['universidadCercana'];
     final servicios = data['servicios'] ?? [];
 
@@ -52,43 +89,33 @@ class PropertyDetailPage extends StatelessWidget {
                   ),
             const SizedBox(height: 20),
 
-            // Título
             Text(
               titulo,
               style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.start,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Descripción
             Text(
               descripcion,
               style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 24),
 
-            // Habitaciones
             Row(
               children: [
                 const Icon(Icons.bed_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Habitaciones disponibles: ",
-                    style: const TextStyle(fontSize: 18)),
-                Text(habitaciones,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("Habitaciones: $habitaciones", style: const TextStyle(fontSize: 18)),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Estacionamiento
             Row(
               children: [
                 const Icon(Icons.directions_car_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Estacionamiento: ",
-                    style: const TextStyle(fontSize: 18)),
                 Text(
-                  estacionamiento,
+                  "Estacionamiento: $estacionamiento",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: estacionamiento == 'Sí' ? FontWeight.bold : FontWeight.normal,
@@ -99,42 +126,34 @@ class PropertyDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Dirección
             Row(
               children: [
                 const Icon(Icons.location_on_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Dirección: ", style: const TextStyle(fontSize: 18)),
                 Expanded(
-                  child: Text(
-                    direccion,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: Text("Dirección: $direccion",
+                      style: const TextStyle(fontSize: 18)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Precio
             Row(
               children: [
                 const Icon(Icons.attach_money_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Precio: ", style: const TextStyle(fontSize: 18)),
-                Text("CLP $precio / mes",
+                Text("Precio: CLP $precio / mes",
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Universidad cercana (opcional)
             Row(
               children: [
                 const Icon(Icons.school_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Universidad cercana: ", style: const TextStyle(fontSize: 18)),
                 Text(
-                  universidad ?? "No registrada",
+                  "Universidad: ${universidad ?? 'No registrada'}",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: universidad != null ? FontWeight.bold : FontWeight.normal,
@@ -145,11 +164,8 @@ class PropertyDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Servicios incluidos
-            const Text(
-              "Servicios incluidos:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text("Servicios incluidos:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,62 +191,45 @@ class PropertyDetailPage extends StatelessWidget {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
 
-            // Arrendador
+            // Botones
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.person_outline, size: 24),
-                const SizedBox(width: 8),
-                Text("Arrendador: ", style: const TextStyle(fontSize: 18)),
-                Text(
-                  arrendador,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/editProperty',
+                      arguments: {
+                        'idDocumento': idDocumento,
+                        'data': data,
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Editar"),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                FilledButton.icon(
+                  onPressed: () => eliminarPropiedad(context),
+                  icon: const Icon(Icons.delete),
+                  label: const Text("Eliminar"),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                  ),
                 ),
               ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Valoración simulada
-            Row(
-              children: const [
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star_half, color: Colors.amber),
-                Icon(Icons.star_border, color: Colors.amber),
-                SizedBox(width: 8),
-                Text("4.5/5", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // Botón de pago
-            Center(
-              child: FilledButton.icon(
-                onPressed: () {
-                  final disponibles = data['habitacionesDisponibles'] ?? 0;
-                  if (disponibles > 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Redirigiendo al pago...")),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("No hay habitaciones disponibles.")),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.payment),
-                label: const Text("Reservar o Pagar", style: TextStyle(fontSize: 18)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: azul,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                ),
-              ),
             ),
           ],
         ),
