@@ -24,6 +24,7 @@ class _CreatepropertypageState extends State<Createpropertypage> {
   final TextEditingController _habitacionesDisponiblesController =
       TextEditingController();
   final TextEditingController _direccionController = TextEditingController();
+  final TextEditingController _urlImagenController = TextEditingController();
 
   bool _tieneEstacionamiento = false;
   String? _universidadSeleccionada;
@@ -38,20 +39,6 @@ class _CreatepropertypageState extends State<Createpropertypage> {
   ];
 
   final List<String> _opcionesServicios = ["Wifi", "Agua", "Luz", "Gas"];
-
-  XFile? _imagenSeleccionada;
-
-  Future<void> _seleccionarImagen() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _imagenSeleccionada = pickedFile;
-      });
-    }
-  }
-
   Future<void> _publicarPropiedad() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -64,17 +51,7 @@ class _CreatepropertypageState extends State<Createpropertypage> {
             .get();
     final nombreUsuario = usuarioDoc.data()?['nombre'] ?? 'Sin nombre';
 
-    String? imageUrl;
-    if (_imagenSeleccionada != null) {
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'propiedades/${DateTime.now().millisecondsSinceEpoch}_${_imagenSeleccionada!.name}',
-      );
-
-      final uploadTask = await storageRef.putFile(
-        File(_imagenSeleccionada!.path),
-      );
-      imageUrl = await uploadTask.ref.getDownloadURL();
-    }
+    final String imageUrl = _urlImagenController.text.trim();
 
     await FirebaseFirestore.instance.collection('propiedades').add({
       'titulo': _tituloController.text.trim(),
@@ -141,8 +118,8 @@ class _CreatepropertypageState extends State<Createpropertypage> {
                 ),
                 validator: (value) => value!.isEmpty ? "Campo requerido" : null,
               ),
-              const SizedBox(height: 12),
 
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _descripcionController,
                 maxLines: 3,
@@ -251,6 +228,20 @@ class _CreatepropertypageState extends State<Createpropertypage> {
                 ),
                 validator: (value) => value!.isEmpty ? "Campo requerido" : null,
               ),
+
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _urlImagenController,
+                decoration: InputDecoration(
+                  labelText: "URL de la imagen (opcional)",
+                  hintText: "https://ejemplo.com/imagen.jpg",
+                  prefixIcon: Icon(Icons.link, color: azul),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
@@ -298,33 +289,19 @@ class _CreatepropertypageState extends State<Createpropertypage> {
               const SizedBox(height: 12),
               Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _imagenSeleccionada != null
-                        ? kIsWeb
-                            ? Image.network(
-                              _imagenSeleccionada!.path,
-                              height: 150,
-                            )
-                            : Image.file(
-                              File(_imagenSeleccionada!.path),
-                              height: 150,
-                            )
-                        : const Text("Ninguna imagen seleccionada"),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _seleccionarImagen,
-                      icon: const Icon(Icons.image),
-                      label: const Text("Seleccionar imagen"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: azul,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
+                    _urlImagenController.text.isNotEmpty
+                        ? Image.network(
+                          _urlImagenController.text.trim(),
+                          height: 150,
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  const Text("URL inválida"),
+                        )
+                        : const Text("No se ha ingresado URL de imagen"),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
 
               Center(
