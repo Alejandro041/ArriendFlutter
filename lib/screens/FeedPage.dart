@@ -77,16 +77,31 @@ class _FeedPageState extends State<FeedPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (imagenUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imagenUrl,
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child:
+                        imagenUrl != null && imagenUrl.isNotEmpty
+                            ? Image.network(
+                              imagenUrl,
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (context, error, stackTrace) => Image.asset(
+                                    'assets/no_image.png',
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                            )
+                            : Image.asset(
+                              'assets/no_image.png',
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                  ),
+
                   const SizedBox(height: 8),
                   Text(
                     titulo,
@@ -184,10 +199,12 @@ class _FeedPageState extends State<FeedPage> {
       },
     );
   }
+  
 
   @override
   Widget build(BuildContext context) {
     final azul = Colors.blue.shade600;
+
 
     return Scaffold(
       appBar: AppBar(
