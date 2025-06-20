@@ -26,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
+            if (!mounted) return;
             Navigator.pushReplacementNamed(context, '/Feed');
           },
         ),

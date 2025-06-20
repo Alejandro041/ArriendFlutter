@@ -12,16 +12,14 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   final currentUser = FirebaseAuth.instance.currentUser;
-  bool _vistaLista =
-      false; // Controla el tipo de vista (false = cards, true = lista)
+  bool _vistaLista = false;
 
   Future<bool> esArrendador() async {
     if (currentUser == null) return false;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection("usuarios")
-            .doc(currentUser!.uid)
-            .get();
+    final doc = await FirebaseFirestore.instance
+        .collection("usuarios")
+        .doc(currentUser!.uid)
+        .get();
     return doc.exists && doc.data()?['tipo'] == 'arrendador';
   }
 
@@ -41,13 +39,13 @@ class _FeedPageState extends State<FeedPage> {
         .snapshots();
   }
 
-  // Método para construir la vista de Cards
   Widget _buildGridView(List<QueryDocumentSnapshot> docs) {
     final azul = Colors.blue.shade600;
     return ListView.builder(
       itemCount: docs.length,
       itemBuilder: (context, index) {
-        final data = docs[index].data() as Map<String, dynamic>;
+        final doc = docs[index];
+        final data = doc.data() as Map<String, dynamic>;
         final imagenUrl = data['imagenUrl'] as String?;
         final titulo = data['titulo'] ?? 'Sin título';
         final descripcion = data['descripcion'] ?? 'Sin descripción';
@@ -62,7 +60,10 @@ class _FeedPageState extends State<FeedPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PropertyDetailPage(data: data),
+                builder: (context) => PropertyDetailPage(
+                  data: data,
+                  propertyId: doc.id,
+                ),
               ),
             );
           },
@@ -79,29 +80,27 @@ class _FeedPageState extends State<FeedPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child:
-                        imagenUrl != null && imagenUrl.isNotEmpty
-                            ? Image.network(
-                              imagenUrl,
-                              height: 180,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder:
-                                  (context, error, stackTrace) => Image.asset(
-                                    'assets/no_image.png',
-                                    height: 180,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                            )
-                            : Image.asset(
+                    child: imagenUrl != null && imagenUrl.isNotEmpty
+                        ? Image.network(
+                            imagenUrl,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.asset(
                               'assets/no_image.png',
                               height: 180,
                               width: double.infinity,
                               fit: BoxFit.cover,
                             ),
+                          )
+                        : Image.asset(
+                            'assets/no_image.png',
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                   ),
-
                   const SizedBox(height: 8),
                   Text(
                     titulo,
@@ -157,13 +156,13 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  // Método para construir la vista de Lista
   Widget _buildListView(List<QueryDocumentSnapshot> docs) {
     final azul = Colors.blue.shade600;
     return ListView.builder(
       itemCount: docs.length,
       itemBuilder: (context, index) {
-        final data = docs[index].data() as Map<String, dynamic>;
+        final doc = docs[index];
+        final data = doc.data() as Map<String, dynamic>;
         final imagenUrl = data['imagenUrl'] as String?;
         final titulo = data['titulo'] ?? 'Sin título';
         final precio = data['precio'] ?? 0;
@@ -171,15 +170,14 @@ class _FeedPageState extends State<FeedPage> {
         final disponibles = data['habitacionesDisponibles'] ?? 0;
 
         return ListTile(
-          leading:
-              imagenUrl != null
-                  ? CircleAvatar(backgroundImage: NetworkImage(imagenUrl))
-                  : CircleAvatar(
-                    backgroundColor: azul.withOpacity(0.1),
-                    child: const Icon(Icons.home, color: Colors.blue),
-                  ),
+          leading: imagenUrl != null
+              ? CircleAvatar(backgroundImage: NetworkImage(imagenUrl))
+              : CircleAvatar(
+                  backgroundColor: azul.withOpacity(0.1),
+                  child: const Icon(Icons.home, color: Colors.blue),
+                ),
           title: Text(titulo),
-          subtitle: Text("Habitaciones: $disponibles/$total"), // Cambiado aquí
+          subtitle: Text("Habitaciones: $disponibles/$total"),
           trailing: Text(
             "\$$precio CLP",
             style: const TextStyle(
@@ -191,7 +189,10 @@ class _FeedPageState extends State<FeedPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PropertyDetailPage(data: data),
+                builder: (context) => PropertyDetailPage(
+                  data: data,
+                  propertyId: doc.id,
+                ),
               ),
             );
           },
@@ -199,12 +200,10 @@ class _FeedPageState extends State<FeedPage> {
       },
     );
   }
-  
 
   @override
   Widget build(BuildContext context) {
     final azul = Colors.blue.shade600;
-
 
     return Scaffold(
       appBar: AppBar(

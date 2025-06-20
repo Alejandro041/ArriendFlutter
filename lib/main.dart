@@ -1,3 +1,7 @@
+import 'package:arriendapp/screens/AdminPage.dart';
+import 'package:arriendapp/screens/AdminPropertyPage.dart';
+import 'package:arriendapp/screens/AdminSoliciyPage.dart';
+import 'package:arriendapp/screens/AdminUsersPage.dart';
 import 'package:arriendapp/screens/CreatePropertyPage.dart';
 import 'package:arriendapp/screens/EditPropertyPage.dart';
 import 'package:arriendapp/screens/FeedPage.dart';
@@ -14,9 +18,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -30,13 +32,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.blue.shade600, 
+        colorSchemeSeed: Colors.blue.shade600,
         brightness: Brightness.light,
       ),
       initialRoute: "/",
       routes: {
         "/": (context) => const LoginPage(),
-        "/Register":  (context) => const RegisterPage(),
+        "/Register": (context) => const RegisterPage(),
         "/Feed": (context) => const FeedPage(),
         "/CreateProperty": (context) => const Createpropertypage(),
         "/SolicityArr": (context) => const Solicityarrpage(),
@@ -44,6 +46,10 @@ class MyApp extends StatelessWidget {
         "/MyProfile": (context) => const ProfilePage(),
         "/PasswordForget": (context) => const PasswordForgetPage(),
         "/editProperty": (context) => const EditPropertyPage(),
+        "/AdminPage": (context) => AdminPage(),
+        "/AdminUsersPage": (context) => const AdminUsersPage(),
+        "/AdminSolicityPage": (context) => const AdminSolicityPage(),
+        "/AdminPropertyPage": (context) => const AdminPropertyPage(),
       },
     );
   }

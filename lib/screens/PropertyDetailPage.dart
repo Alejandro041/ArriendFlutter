@@ -1,15 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class PropertyDetailPage extends StatelessWidget {
+class PropertyDetailPage extends StatefulWidget {
   final Map<String, dynamic> data;
+  final String propertyId;
 
-  const PropertyDetailPage({super.key, required this.data});
+  const PropertyDetailPage({super.key, required this.data, required this.propertyId});
+
+  @override
+  State<PropertyDetailPage> createState() => _PropertyDetailPageState();
+}
+
+class _PropertyDetailPageState extends State<PropertyDetailPage> {
+  double _userRating = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRating();
+  }
+
+  Future<void> _loadUserRating() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('propiedades')
+        .doc(widget.propertyId)
+        .collection('valoraciones')
+        .doc(uid)
+        .get();
+
+    if (doc.exists && doc.data()?['valor'] != null) {
+      setState(() => _userRating = (doc['valor'] as num).toDouble());
+    }
+  }
+
+  Future<void> _setRating(double valor) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('propiedades')
+        .doc(widget.propertyId)
+        .collection('valoraciones')
+        .doc(uid)
+        .set({'valor': valor});
+
+    setState(() => _userRating = valor);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final azul = Colors.blue.shade600;
 
-    // Datos principales
     final titulo = data['titulo'] ?? 'Sin título';
     final descripcion = data['descripcion'] ?? 'Sin descripción';
     final direccion = data['direccion'] ?? 'Sin dirección';
@@ -53,18 +99,11 @@ class PropertyDetailPage extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Título
-            Text(
-              titulo,
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.start,
-            ),
+            Text(titulo, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
             // Descripción
-            Text(
-              descripcion,
-              style: const TextStyle(fontSize: 18),
-            ),
+            Text(descripcion, style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 24),
 
             // Habitaciones
@@ -72,10 +111,8 @@ class PropertyDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.bed_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Habitaciones disponibles: ",
-                    style: const TextStyle(fontSize: 18)),
-                Text(habitaciones,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("Habitaciones disponibles: ", style: const TextStyle(fontSize: 18)),
+                Text(habitaciones, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
@@ -85,8 +122,7 @@ class PropertyDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.directions_car_outlined, size: 24),
                 const SizedBox(width: 8),
-                Text("Estacionamiento: ",
-                    style: const TextStyle(fontSize: 18)),
+                Text("Estacionamiento: ", style: const TextStyle(fontSize: 18)),
                 Text(
                   estacionamiento,
                   style: TextStyle(
@@ -106,10 +142,7 @@ class PropertyDetailPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text("Dirección: ", style: const TextStyle(fontSize: 18)),
                 Expanded(
-                  child: Text(
-                    direccion,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: Text(direccion, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -121,13 +154,12 @@ class PropertyDetailPage extends StatelessWidget {
                 const Icon(Icons.attach_money_outlined, size: 24),
                 const SizedBox(width: 8),
                 Text("Precio: ", style: const TextStyle(fontSize: 18)),
-                Text("CLP $precio / mes",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("CLP $precio / mes", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Universidad cercana (opcional)
+            // Universidad cercana
             Row(
               children: [
                 const Icon(Icons.school_outlined, size: 24),
@@ -145,11 +177,8 @@ class PropertyDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Servicios incluidos
-            const Text(
-              "Servicios incluidos:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            // Servicios
+            const Text("Servicios incluidos:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,11 +186,7 @@ class PropertyDetailPage extends StatelessWidget {
                 final tiene = servicios.contains(serv);
                 return Row(
                   children: [
-                    Icon(
-                      tiene ? Icons.check_circle : Icons.cancel,
-                      color: tiene ? azul : Colors.grey,
-                      size: 20,
-                    ),
+                    Icon(tiene ? Icons.check_circle : Icons.cancel, color: tiene ? azul : Colors.grey, size: 20),
                     const SizedBox(width: 6),
                     Text(
                       tiene ? serv : "$serv (no disponible)",
@@ -183,42 +208,63 @@ class PropertyDetailPage extends StatelessWidget {
                 const Icon(Icons.person_outline, size: 24),
                 const SizedBox(width: 8),
                 Text("Arrendador: ", style: const TextStyle(fontSize: 18)),
-                Text(
-                  arrendador,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                Text(arrendador, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
 
             const SizedBox(height: 24),
 
-            // Valoración simulada
+            // Valoración personal
+            const Text("Tu calificación:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             Row(
-              children: const [
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star, color: Colors.amber),
-                Icon(Icons.star_half, color: Colors.amber),
-                Icon(Icons.star_border, color: Colors.amber),
-                SizedBox(width: 8),
-                Text("4.5/5", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
+              children: List.generate(5, (i) {
+                final valor = i + 1;
+                return IconButton(
+                  onPressed: () => _setRating(valor.toDouble()),
+                  icon: Icon(
+                    _userRating >= valor ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                  ),
+                );
+              }),
             ),
 
             const SizedBox(height: 32),
 
-            // Botón de pago
+            // Botón de pago con confirmación
             Center(
               child: FilledButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   final disponibles = data['habitacionesDisponibles'] ?? 0;
-                  if (disponibles > 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Redirigiendo al pago...")),
-                    );
-                  } else {
+                  if (disponibles <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("No hay habitaciones disponibles.")),
+                    );
+                    return;
+                  }
+
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("¿Confirmar pago?"),
+                      content: const Text("¿Estás seguro de que deseas realizar el pago?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("Cancelar"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("Sí, pagar"),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Redirigiendo al pago...")),
                     );
                   }
                 },

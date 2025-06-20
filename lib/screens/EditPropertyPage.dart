@@ -21,20 +21,23 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
   final TextEditingController _totalRoomsController = TextEditingController();
   final TextEditingController _availableRoomsController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
 
   bool _hasParking = false;
   String? _selectedUniversity;
   List<String> _services = [];
 
-  final List<String> _universities = ["UCM", "UTalca", "Autónoma", "Santo Tomás", "Otra"];
+  final List<String> _universities = [
+    "UCM", "UTalca", "Autónoma", "Santo Tomás", "Otra",
+  ];
   final List<String> _serviceOptions = ["Wifi", "Agua", "Luz", "Gas"];
 
-  XFile? _selectedImage;
-  String? _currentImageUrl;
   late String propertyId;
 
   @override
   void didChangeDependencies() {
+    super.didChangeDependencies();
+
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final data = args['data'] as Map<String, dynamic>;
     propertyId = args['idDocumento'];
@@ -48,31 +51,11 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
     _hasParking = data['estacionamiento'] ?? false;
     _selectedUniversity = data['universidadCercana'];
     _services = List<String>.from(data['servicios'] ?? []);
-    _currentImageUrl = data['imagenUrl'];
-
-    super.didChangeDependencies();
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _selectedImage = picked);
-    }
-  }
-
-  Future<String?> _uploadImage() async {
-    if (_selectedImage == null) return _currentImageUrl;
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('propiedades/${DateTime.now().millisecondsSinceEpoch}_${_selectedImage!.name}');
-    final task = await ref.putFile(File(_selectedImage!.path));
-    return await task.ref.getDownloadURL();
+    _imageUrlController.text = data['imagenUrl'] ?? '';
   }
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
-    final imageUrl = await _uploadImage();
 
     await FirebaseFirestore.instance.collection('propiedades').doc(propertyId).update({
       'titulo': _titleController.text.trim(),
@@ -84,7 +67,7 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
       'estacionamiento': _hasParking,
       'universidadCercana': _selectedUniversity,
       'servicios': _services,
-      'imagenUrl': imageUrl,
+      'imagenUrl': _imageUrlController.text.trim(),
     });
 
     if (!mounted) return;
@@ -112,83 +95,20 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: "Título",
-                  prefixIcon: Icon(Icons.title, color: azul),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (value) => value!.isEmpty ? "Campo requerido" : null,
-              ),
+              _buildTextField("Título", _titleController, Icons.title, azul),
               const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: "Descripción",
-                  prefixIcon: Icon(Icons.description, color: azul),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (value) => value!.isEmpty ? "Campo requerido" : null,
-              ),
+              _buildTextField("Descripción", _descriptionController, Icons.description, azul, maxLines: 3),
               const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Precio mensual",
-                  prefixIcon: Icon(Icons.attach_money, color: azul),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return "Campo requerido";
-                  if (double.tryParse(value) == null) return "Número inválido";
-                  return null;
-                },
-              ),
+              _buildNumberField("Precio mensual", _priceController, Icons.attach_money, azul),
               const SizedBox(height: 12),
-
               Row(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _totalRoomsController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Total habitaciones",
-                        prefixIcon: Icon(Icons.meeting_room, color: azul),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      validator: (value) => value!.isEmpty ? "Campo requerido" : null,
-                    ),
-                  ),
+                  Expanded(child: _buildNumberField("Total habitaciones", _totalRoomsController, Icons.meeting_room, azul)),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _availableRoomsController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Disponibles",
-                        prefixIcon: Icon(Icons.bed, color: azul),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return "Campo requerido";
-                        final total = int.tryParse(_totalRoomsController.text);
-                        final disp = int.tryParse(value);
-                        if (disp == null) return "Número inválido";
-                        if (total != null && disp > total) return "Mayor que el total";
-                        return null;
-                      },
-                    ),
-                  ),
+                  Expanded(child: _buildNumberField("Disponibles", _availableRoomsController, Icons.bed, azul)),
                 ],
               ),
               const SizedBox(height: 12),
-
               SwitchListTile(
                 title: const Text("¿Tiene estacionamiento?"),
                 value: _hasParking,
@@ -197,18 +117,8 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
                 secondary: Icon(Icons.drive_eta, color: azul),
               ),
               const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _addressController,
-                decoration: InputDecoration(
-                  labelText: "Dirección",
-                  prefixIcon: Icon(Icons.location_on, color: azul),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (value) => value!.isEmpty ? "Campo requerido" : null,
-              ),
+              _buildTextField("Dirección", _addressController, Icons.location_on, azul),
               const SizedBox(height: 12),
-
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   labelText: "Universidad cercana (opcional)",
@@ -220,7 +130,6 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
                 onChanged: (val) => setState(() => _selectedUniversity = val),
               ),
               const SizedBox(height: 12),
-
               Row(
                 children: [
                   Icon(Icons.checklist, color: azul),
@@ -246,29 +155,22 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
               ),
               const SizedBox(height: 12),
 
-              Center(
-                child: Column(
-                  children: [
-                    _selectedImage != null
-                        ? (kIsWeb
-                            ? Image.network(_selectedImage!.path, height: 150)
-                            : Image.file(File(_selectedImage!.path), height: 150))
-                        : (_currentImageUrl != null
-                            ? Image.network(_currentImageUrl!, height: 150)
-                            : const Text("Ninguna imagen seleccionada")),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image),
-                      label: const Text("Cambiar imagen"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: azul,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
+              TextFormField(
+                controller: _imageUrlController,
+                decoration: InputDecoration(
+                  labelText: "URL de imagen (opcional)",
+                  prefixIcon: Icon(Icons.link, color: azul),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
+              const SizedBox(height: 8),
+
+              if (_imageUrlController.text.isNotEmpty)
+                Center(
+                  child: Image.network(_imageUrlController.text, height: 150, errorBuilder: (context, error, stackTrace) {
+                    return const Text("No se pudo cargar la imagen");
+                  }),
+                ),
 
               const SizedBox(height: 24),
 
@@ -289,6 +191,36 @@ class _EditPropertyPageState extends State<EditPropertyPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, Color color, {int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: color),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      validator: (value) => value!.isEmpty ? "Campo requerido" : null,
+    );
+  }
+
+  Widget _buildNumberField(String label, TextEditingController controller, IconData icon, Color color) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: color),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) return "Campo requerido";
+        if (double.tryParse(value) == null) return "Número inválido";
+        return null;
+      },
     );
   }
 }

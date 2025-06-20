@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -65,13 +66,15 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: const Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: Icon(Icons.account_circle_rounded, 
-                        size: 80, 
-                        color: Colors.blue),
+                      child: Icon(
+                        Icons.account_circle_rounded,
+                        size: 80,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Card con el formulario
                   Card(
                     elevation: 8,
@@ -91,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Email
                           TextField(
                             controller: _emailController,
@@ -102,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Password
                           TextField(
                             controller: _passwordController,
@@ -126,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          
+
                           // Olvidé contraseña
                           Align(
                             alignment: Alignment.centerRight,
@@ -148,49 +151,57 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Botón login
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isLoading 
-                                  ? null 
-                                  : () {
-                                      _fnIniciarSesion(
-                                        _emailController.text,
-                                        _passwordController.text,
-                                      );
-                                    },
+                              onPressed:
+                                  _isLoading
+                                      ? null
+                                      : () {
+                                        _fnIniciarSesion(
+                                          _emailController.text,
+                                          _passwordController.text,
+                                        );
+                                      },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue.shade700,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 4,
                                 shadowColor: Colors.blue.shade200,
                               ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.login, size: 20),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          "Iniciar Sesión",
-                                          style: TextStyle(fontSize: 16),
+                              child:
+                                  _isLoading
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         ),
-                                      ],
-                                    ),
+                                      )
+                                      : const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.login, size: 20),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            "Iniciar Sesión",
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                        ],
+                                      ),
                             ),
                           ),
                         ],
@@ -198,17 +209,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Registro
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "¿No tienes cuenta?",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                       TextButton(
                         onPressed: () {
@@ -286,25 +294,86 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      final uid = userCredential.user?.uid;
+      if (uid == null) throw Exception("No se pudo obtener el UID");
+
+      // Obtener el tipo desde Firestore
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('usuarios')
+              .doc(uid)
+              .get();
+
+      if (!doc.exists)
+        throw Exception("No se encontró el documento del usuario");
+
+      final tipo = doc.data()?['tipo'];
 
       if (!mounted) return;
-      
-      Navigator.pushReplacementNamed(context, '/Feed');
-      
+
+      if (tipo == 'admin') {
+        Navigator.pushReplacementNamed(context, '/AdminPage');
+      } else {
+        Navigator.pushReplacementNamed(context, '/Feed');
+      }
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
-      
+
       String msg = switch (e.code) {
         'user-not-found' => "Usuario no encontrado",
         'wrong-password' => "Contraseña incorrecta",
         'invalid-credential' => "Credenciales inválidas",
         _ => "Error: ${e.message}",
       };
-      
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error inesperado: $e"),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, '/Feed');
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+
+      String msg = switch (e.code) {
+        'user-not-found' => "Usuario no encontrado",
+        'wrong-password' => "Contraseña incorrecta",
+        'invalid-credential' => "Credenciales inválidas",
+        _ => "Error: ${e.message}",
+      };
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
