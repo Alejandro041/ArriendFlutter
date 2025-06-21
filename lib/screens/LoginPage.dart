@@ -15,6 +15,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _passwordVisible = false;
   bool _isLoading = false;
 
+  // Correo que puede ingresar sin verificación
+  final String correoExento = 'admin@admin.cl';
+
   @override
   void initState() {
     super.initState();
@@ -297,18 +300,56 @@ class _LoginPageState extends State<LoginPage> {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      final uid = userCredential.user?.uid;
-      if (uid == null) throw Exception("No se pudo obtener el UID");
+      final user = userCredential.user;
+      if (user == null) throw Exception("No se pudo obtener el usuario");
 
-      // Obtener el tipo desde Firestore
+      // Validar verificación de correo, salvo para correo exento
+      if (!user.emailVerified &&
+          user.email!.toLowerCase() != correoExento.toLowerCase()) {
+        await FirebaseAuth.instance.signOut();
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              "Tu correo no está verificado. Revisa tu bandeja de entrada.",
+            ),
+            action: SnackBarAction(
+              label: "Reenviar",
+              textColor: Colors.white,
+              onPressed: () async {
+                try {
+                  await user.sendEmailVerification();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Correo de verificación reenviado"),
+                      backgroundColor: Colors.green.shade600,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Error al reenviar: $e"),
+                      backgroundColor: Colors.red.shade600,
+                    ),
+                  );
+                }
+              },
+            ),
+            backgroundColor: Colors.orange.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Obtener rol desde Firestore
       final doc =
-          await FirebaseFirestore.instance
-              .collection('usuarios')
-              .doc(uid)
-              .get();
+          await FirebaseFirestore.instance.collection('usuarios').doc(user.uid).get();
 
-      if (!doc.exists)
-        throw Exception("No se encontró el documento del usuario");
+      if (!doc.exists) throw Exception("No se encontró el documento del usuario");
 
       final tipo = doc.data()?['tipo'];
 
@@ -319,51 +360,6 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         Navigator.pushReplacementNamed(context, '/Feed');
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _isLoading = false);
-
-      String msg = switch (e.code) {
-        'user-not-found' => "Usuario no encontrado",
-        'wrong-password' => "Contraseña incorrecta",
-        'invalid-credential' => "Credenciales inválidas",
-        _ => "Error: ${e.message}",
-      };
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error inesperado: $e"),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(context, '/Feed');
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
 

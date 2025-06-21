@@ -42,6 +42,7 @@ class AdminPage extends StatelessWidget {
         backgroundColor: azul,
         foregroundColor: Colors.white,
         title: const Text("Panel de Administrador"),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
